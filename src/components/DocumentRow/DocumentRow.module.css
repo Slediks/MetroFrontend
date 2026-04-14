@@ -1,0 +1,147 @@
+﻿.row {
+  display: grid;
+  grid-template-columns: 84px minmax(260px, 1.5fr) minmax(180px, 0.9fr) minmax(260px, 1.2fr) 150px;
+  border-bottom: 1px solid var(--border);
+}
+
+.row:nth-child(even) {
+  background: rgba(238, 244, 248, 0.4);
+}
+
+.cell {
+  padding: 12px 14px;
+  min-height: 70px;
+  border-right: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+}
+
+.cell:last-child {
+  border-right: 0;
+}
+
+.checkboxCell {
+  justify-content: center;
+}
+
+.checkbox {
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-alt);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.hiddenInput {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.mark {
+  color: transparent;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.checked {
+  border-color: var(--primary-color);
+  background: var(--primary-color);
+}
+
+.checked .mark {
+  color: #fff;
+}
+
+.required {
+  cursor: default;
+  border-color: var(--primary-color);
+  background: linear-gradient(180deg, rgba(0, 125, 186, 0.2), rgba(0, 125, 186, 0.12));
+  box-shadow: inset 0 0 0 1px rgba(0, 125, 186, 0.3);
+}
+
+.required .mark {
+  color: var(--primary-strong);
+}
+
+.valueTitle {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.valueName {
+  font-weight: 700;
+  color: var(--text-color);
+}
+
+.valueMeta {
+  color: var(--muted-color);
+  font-size: 12px;
+}
+
+.singleUnit {
+  font-weight: 600;
+}
+
+.selectWrap,
+.inputWrap {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface-alt);
+  min-height: 42px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.selectWrap:focus-within,
+.inputWrap:focus-within {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px var(--ring);
+}
+
+.selectWrap select,
+.inputWrap input {
+  width: 100%;
+  min-height: 40px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text-color);
+  padding: 8px 10px;
+  font: inherit;
+}
+
+.selectWrap select:disabled,
+.inputWrap input:disabled {
+  opacity: 0.55;
+}
+
+.rangeWrap {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 22px 1fr;
+  gap: 8px;
+  align-items: center;
+}
+
+.dash {
+  text-align: center;
+  color: var(--muted-color);
+  font-weight: 700;
+}
+
+.invalid {
+  border-color: var(--danger);
+}
+
+@media (max-width: 1100px) {
+  .row {
+    min-width: 980px;
+  }
+}

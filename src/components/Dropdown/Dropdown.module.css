@@ -1,0 +1,125 @@
+﻿.field {
+  position: relative;
+}
+
+.label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 13px;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  font-weight: 700;
+  color: var(--muted-color);
+}
+
+.control {
+  position: relative;
+  min-height: 52px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface-alt);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.control:hover {
+  border-color: var(--border-strong);
+}
+
+.control.open {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 4px var(--ring);
+}
+
+.control.disabled {
+  opacity: 0.62;
+}
+
+.input {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text-color);
+  font: inherit;
+  padding: 14px 42px 14px 14px;
+  border-radius: 12px;
+  position: relative;
+  z-index: 2;
+}
+
+.placeholder {
+  position: absolute;
+  top: 50%;
+  left: 14px;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--muted-color);
+  z-index: 1;
+}
+
+.iconButton {
+  border: 0;
+  background: transparent;
+  position: absolute;
+  inset: 0 6px 0 auto;
+  width: 34px;
+  cursor: pointer;
+  color: var(--muted-color);
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+}
+
+.icon {
+  font-size: 16px;
+  line-height: 1;
+  transition: transform 0.18s ease;
+}
+
+.open .icon {
+  transform: rotate(180deg);
+}
+
+.menu {
+  margin: 8px 0 0;
+  padding: 6px;
+  list-style: none;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface-color);
+  box-shadow: 0 14px 28px rgba(16, 41, 59, 0.15);
+  max-height: 240px;
+  overflow-y: auto;
+  position: absolute;
+  z-index: 20;
+  left: 0;
+  right: 0;
+}
+
+.optionWrap {
+  margin: 0;
+}
+
+.option {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  font: inherit;
+  color: var(--text-color);
+  border-radius: 8px;
+  padding: 9px 10px;
+  cursor: pointer;
+  transition: background-color 0.16s ease, color 0.16s ease;
+}
+
+.option:hover,
+.optionActive {
+  background: var(--surface-muted);
+  color: var(--primary-strong);
+}
+
+.message {
+  padding: 10px;
+  color: var(--muted-color);
+}

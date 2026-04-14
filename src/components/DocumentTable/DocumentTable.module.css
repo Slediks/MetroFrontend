@@ -1,0 +1,97 @@
+﻿.tableCard {
+  background: var(--surface-color);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+
+.tableHead {
+  display: grid;
+  grid-template-columns: 84px minmax(260px, 1.5fr) minmax(180px, 0.9fr) minmax(260px, 1.2fr) 150px;
+  background: var(--surface-muted);
+  border-bottom: 1px solid var(--border);
+}
+
+.th {
+  min-height: 62px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  border-right: 1px solid var(--border);
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--muted-color);
+}
+
+.th:last-child {
+  border-right: 0;
+}
+
+.tableBody {
+  max-height: 380px;
+  overflow-y: auto;
+}
+
+.stateBox {
+  min-height: 240px;
+  padding: 26px;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  text-align: center;
+  gap: 12px;
+  background: linear-gradient(180deg, var(--surface-color), var(--surface-alt));
+}
+
+.stateLogo {
+  width: 78px;
+  height: 78px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface-muted);
+  color: var(--primary-color);
+  display: grid;
+  place-items: center;
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.stateTitle {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.22;
+}
+
+.stateText {
+  margin: 0;
+  max-width: 520px;
+  color: var(--muted-color);
+  line-height: 1.58;
+}
+
+.loader {
+  width: 50px;
+  height: 50px;
+  border-radius: 999px;
+  border: 4px solid rgba(0, 125, 186, 0.18);
+  border-top-color: var(--primary-color);
+  animation: spin 0.85s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 1100px) {
+  .tableCard {
+    overflow-x: auto;
+  }
+
+  .tableHead {
+    min-width: 980px;
+  }
+}
