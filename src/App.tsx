@@ -34,6 +34,14 @@ const initialValidation = (rows: RowDraft[]): Record<string, RowValidation> =>
     return accumulator;
   }, {});
 
+const getErrorMessage = (error: unknown, fallback: string): string => {
+  if (error instanceof Error && error.message.trim()) {
+    return error.message;
+  }
+
+  return fallback;
+};
+
 const App = (): JSX.Element => {
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [mode, setMode] = useState<SearchMode>("Измеряет");
@@ -78,6 +86,11 @@ const App = (): JSX.Element => {
         if (active) {
           setParameterOptions(response);
         }
+      } catch (error) {
+        if (active) {
+          setParameterOptions([]);
+          setSearchResult(getErrorMessage(error, "Не удалось загрузить параметры поиска."));
+        }
       } finally {
         if (active) {
           setParameterLoading(false);
@@ -112,6 +125,12 @@ const App = (): JSX.Element => {
         const nextRows = response.map(toRowDraft);
         setRows(nextRows);
         setValidations(initialValidation(nextRows));
+      } catch (error) {
+        if (active) {
+          setRows([]);
+          setValidations({});
+          setSearchResult(getErrorMessage(error, "Не удалось загрузить величины для выбранного параметра."));
+        }
       } finally {
         if (active) {
           setTableLoading(false);
@@ -190,6 +209,8 @@ const App = (): JSX.Element => {
 
       const response = await metrologyApi.searchDocuments(payload);
       setSearchResult(response.text);
+    } catch (error) {
+      setSearchResult(getErrorMessage(error, "Не удалось выполнить поиск документов."));
     } finally {
       setSearchLoading(false);
     }
@@ -208,6 +229,8 @@ const App = (): JSX.Element => {
       });
 
       setRatingMessage("Оценка отправлена.");
+    } catch (error) {
+      setRatingMessage(getErrorMessage(error, "Не удалось отправить оценку."));
     } finally {
       setRatingSending(false);
     }
