@@ -5,7 +5,7 @@ import { Dropdown, type DropdownOption } from "./components/Dropdown/Dropdown";
 import { RatingSlider } from "./components/RatingSlider/RatingSlider";
 import { ThemedSvgLogo } from "./components/ThemedSvgLogo/ThemedSvgLogo";
 import { useDebounce } from "./hooks/useDebounce";
-import type { BackendCriterion, RowDraft, SearchMode } from "./types";
+import type { BackendCriterion, FoundDocument, RowDraft, SearchMode } from "./types";
 import { hasRowErrors, validateRow, type RowValidation } from "./utils/validation";
 import styles from "./App.module.css";
 
@@ -50,6 +50,11 @@ const App = (): JSX.Element => {
 
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchResult, setSearchResult] = useState("");
+  const [foundDocuments, setFoundDocuments] = useState<FoundDocument[]>([]);
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [pdfError, setPdfError] = useState("");
+  const [openedDocumentName, setOpenedDocumentName] = useState("");
+  const [openedPdfUrl, setOpenedPdfUrl] = useState("");
 
   const [rating, setRating] = useState(3);
   const [comment, setComment] = useState("");
@@ -144,6 +149,7 @@ const App = (): JSX.Element => {
   const handleSearch = async (): Promise<void> => {
     if (!selectedParameter) {
       setSearchResult("Сначала выберите параметр поиска.");
+      setFoundDocuments([]);
       return;
     }
 
@@ -159,6 +165,7 @@ const App = (): JSX.Element => {
 
     if (invalidSelectedRows.length > 0) {
       setSearchResult("Заполните обязательные поля для выбранных строк и повторите поиск.");
+      setFoundDocuments([]);
       return;
     }
 
@@ -192,8 +199,65 @@ const App = (): JSX.Element => {
 
       const response = await metrologyApi.searchDocuments(payload);
       setSearchResult(response.text);
+      setFoundDocuments(response.documents);
     } finally {
       setSearchLoading(false);
+    }
+  };
+
+  const closePdfPreview = (): void => {
+    if (openedPdfUrl) {
+      URL.revokeObjectURL(openedPdfUrl);
+    }
+
+    setOpenedPdfUrl("");
+    setOpenedDocumentName("");
+    setPdfError("");
+    setPdfLoading(false);
+  };
+
+  useEffect(() => {
+    if (!openedDocumentName && !pdfLoading) {
+      return;
+    }
+
+    const handleEscape = (event: KeyboardEvent): void => {
+      if (event.key === "Escape") {
+        closePdfPreview();
+      }
+    };
+
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [openedDocumentName, pdfLoading, openedPdfUrl]);
+
+  useEffect(
+    () => () => {
+      if (openedPdfUrl) {
+        URL.revokeObjectURL(openedPdfUrl);
+      }
+    },
+    [openedPdfUrl]
+  );
+
+  const handleOpenDocument = async (document: FoundDocument): Promise<void> => {
+    if (openedPdfUrl) {
+      URL.revokeObjectURL(openedPdfUrl);
+      setOpenedPdfUrl("");
+    }
+
+    setPdfLoading(true);
+    setPdfError("");
+    setOpenedDocumentName(document.fileName);
+
+    try {
+      const pdfBlob = await metrologyApi.fetchDocumentPdf(document.id);
+      const nextUrl = URL.createObjectURL(pdfBlob);
+      setOpenedPdfUrl(nextUrl);
+    } catch {
+      setPdfError("Не удалось загрузить PDF. Повторите попытку.");
+    } finally {
+      setPdfLoading(false);
     }
   };
 
@@ -249,6 +313,7 @@ const App = (): JSX.Element => {
               setParameterSearch("");
               setSelectedParameter(null);
               setSearchResult("");
+              setFoundDocuments([]);
               setRows([]);
             }}
           />
@@ -262,6 +327,7 @@ const App = (): JSX.Element => {
               setSelectedParameter(option);
               setParameterSearch(option.label);
               setSearchResult("");
+              setFoundDocuments([]);
             }}
             searchable
             searchValue={parameterSearch}
@@ -334,7 +400,29 @@ const App = (): JSX.Element => {
 
         <div className={`${styles.card} ${styles.resultBox}`}>
           {searchResult ? (
-            <p className={styles.resultText}>{searchResult}</p>
+            <>
+              <p className={styles.resultText}>{searchResult}</p>
+              {foundDocuments.length > 0 ? (
+                <div className={styles.documentsBlock}>
+                  <h3 className={styles.documentsTitle}>Найденные PDF</h3>
+                  <ul className={styles.documentList}>
+                    {foundDocuments.map((document) => (
+                      <li key={document.id}>
+                        <button
+                          type="button"
+                          className={styles.documentLink}
+                          onClick={() => {
+                            void handleOpenDocument(document);
+                          }}
+                        >
+                          {document.fileName}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </>
           ) : (
             <p className={styles.resultPlaceholder}>Результат поиска появится здесь после отправки запроса.</p>
           )}
@@ -369,6 +457,50 @@ const App = (): JSX.Element => {
           {ratingMessage ? <span className={styles.feedbackMessage}>{ratingMessage}</span> : null}
         </div>
       </section>
+
+      {(openedDocumentName || pdfLoading) && (
+        <div
+          className={styles.modalOverlay}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Предпросмотр PDF"
+          onClick={closePdfPreview}
+        >
+          <div
+            className={styles.modalCard}
+            onClick={(event) => {
+              event.stopPropagation();
+            }}
+          >
+            <div className={styles.modalHead}>
+              <h3 className={styles.modalTitle}>{openedDocumentName || "Загрузка PDF"}</h3>
+              <button
+                type="button"
+                className={styles.modalClose}
+                onClick={closePdfPreview}
+                aria-label="Закрыть предпросмотр"
+              >
+                ×
+              </button>
+            </div>
+            <div className={styles.modalBody}>
+              {pdfLoading && (
+                <div className={styles.modalLoader} aria-label="Загрузка PDF" role="status">
+                  <span className={styles.modalSpinner} />
+                </div>
+              )}
+              {!pdfLoading && pdfError && <p className={styles.modalError}>{pdfError}</p>}
+              {!pdfLoading && !pdfError && openedPdfUrl && (
+                <iframe
+                  title={`PDF: ${openedDocumentName}`}
+                  className={styles.pdfFrame}
+                  src={`${openedPdfUrl}#toolbar=0&navpanes=0`}
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 };

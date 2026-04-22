@@ -1,5 +1,6 @@
-﻿import type {
+import type {
   BackendCriterion,
+  FoundDocument,
   ParameterOption,
   RatingRequest,
   SearchMode,
@@ -9,6 +10,8 @@
 
 const delay = (ms: number): Promise<void> =>
   new Promise((resolve) => window.setTimeout(resolve, ms));
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL?.trim();
 
 const parameterByMode: Record<SearchMode, ParameterOption[]> = {
   Измеряет: [
@@ -70,6 +73,26 @@ const criteriaByParameter: Record<string, BackendCriterion[]> = {
   ]
 };
 
+const fallbackDocuments: FoundDocument[] = [
+  { id: "mi-001-2026", fileName: "МИ_001-2026.pdf" },
+  { id: "rmg-142-2024", fileName: "РМГ_142-2024.pdf" },
+  { id: "gost-8-009-2020", fileName: "ГОСТ_8.009-2020.pdf" }
+];
+
+const samplePdfBase64 =
+  "JVBERi0xLjQKJcOiw6MKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFsgMyAwIFIgXSAvQ291bnQgMSA+PgplbmRvYmoKMyAwIG9iago8PCAvVHlwZSAvUGFnZSAvUGFyZW50IDIgMCBSIC9NZWRpYUJveCBbMCAwIDU5NSA4NDJdIC9SZXNvdXJjZXMgPDwgL0ZvbnQgPDwgL0YxIDQgMCBSID4+ID4+IC9Db250ZW50cyA1IDAgUiA+PgplbmRvYmoKNCAwIG9iago8PCAvVHlwZSAvRm9udCAvU3VidHlwZSAvVHlwZTEgL0Jhc2VGb250IC9IZWx2ZXRpY2EgPj4KZW5kb2JqCjUgMCBvYmoKPDwgL0xlbmd0aCAxMDEgPj4Kc3RyZWFtCkJUCi9GMSAyNCBUZgo3MiA3NTAgVGQKKFByZXZpZXcgb2YgZG9jdW1lbnQpIFRqCi9GMSAxNCBUZgo3MiA3MjAgVGQKKFRoaXMgUERGIGlzIGxvYWRlZCBmcm9tIHRoZSBmcm9udGVuZCBtb2NrKSBUagpFVAplbmRzdHJlYW0KZW5kb2JqCnhyZWYKMCA2CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAxNSAwMDAwMCBuIAowMDAwMDAwMDY0IDAwMDAwIG4gCjAwMDAwMDAxMjEgMDAwMDAgbiAKMDAwMDAwMDI0NyAwMDAwMCBuIAowMDAwMDAwMzE3IDAwMDAwIG4gCnRyYWlsZXIKPDwgL1NpemUgNiAvUm9vdCAxIDAgUiA+PgpzdGFydHhyZWYKNTA5CiUlRU9G";
+
+const buildMockPdfBlob = (): Blob => {
+  const binary = window.atob(samplePdfBase64);
+  const bytes = new Uint8Array(binary.length);
+
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+
+  return new Blob([bytes], { type: "application/pdf" });
+};
+
 export const metrologyApi = {
   async fetchParameters(mode: SearchMode, query: string): Promise<ParameterOption[]> {
     await delay(250);
@@ -90,7 +113,8 @@ export const metrologyApi = {
 
     if (request.criteria.length === 0) {
       return {
-        text: "Не выбраны значения для поиска. Отметьте хотя бы одну величину и заполните значения."
+        text: "Не выбраны значения для поиска. Отметьте хотя бы одну величину и заполните значения.",
+        documents: []
       };
     }
 
@@ -103,10 +127,30 @@ export const metrologyApi = {
     });
 
     return {
-      text: `Режим: ${request.mode}\nПараметр: ${request.parameterLabel}\n\nУсловия:\n${lines.join(
-        "\n"
-      )}\n\nНайдены документы: 3\n- МИ 001-2026\n- РМГ 142-2024\n- ГОСТ 8.009-2020`
+      text: `Режим: ${request.mode}\nПараметр: ${request.parameterLabel}\n\nУсловия:\n${lines.join("\n")}`,
+      documents: fallbackDocuments
     };
+  },
+
+  async fetchDocumentPdf(documentId: string): Promise<Blob> {
+    if (API_BASE_URL) {
+      const response = await fetch(
+        `${API_BASE_URL.replace(/\/$/, "")}/documents/${encodeURIComponent(documentId)}/pdf`,
+        {
+          method: "GET"
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Не удалось загрузить PDF: ${response.status}`);
+      }
+
+      return await response.blob();
+    }
+
+    await delay(350);
+    void documentId;
+    return buildMockPdfBlob();
   },
 
   async submitRating(payload: RatingRequest): Promise<void> {

@@ -1,4 +1,4 @@
-﻿export type SearchMode = "Измеряет" | "Выдает";
+export type SearchMode = "Измеряет" | "Выдает";
 
 export interface ParameterOption {
   id: string;
@@ -44,8 +44,14 @@ export interface SearchRequest {
   criteria: SearchCriterionPayload[];
 }
 
+export interface FoundDocument {
+  id: string;
+  fileName: string;
+}
+
 export interface SearchResponse {
   text: string;
+  documents: FoundDocument[];
 }
 
 export interface RatingRequest {
