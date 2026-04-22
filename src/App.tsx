@@ -3,6 +3,7 @@ import { metrologyApi } from "./api/metrologyApi";
 import { DocumentTable } from "./components/DocumentTable/DocumentTable";
 import { Dropdown, type DropdownOption } from "./components/Dropdown/Dropdown";
 import { RatingSlider } from "./components/RatingSlider/RatingSlider";
+import { ThemedSvgLogo } from "./components/ThemedSvgLogo/ThemedSvgLogo";
 import { useDebounce } from "./hooks/useDebounce";
 import type { BackendCriterion, RowDraft, SearchMode } from "./types";
 import { hasRowErrors, validateRow, type RowValidation } from "./utils/validation";
@@ -14,6 +15,7 @@ const modeOptions: DropdownOption[] = [
   { id: "Измеряет", label: "Измеряет" },
   { id: "Выдает", label: "Выдает" }
 ];
+const metroLogoSrc = new URL("./assets/metro-logo.svg", import.meta.url).href;
 
 const toRowDraft = (criterion: BackendCriterion): RowDraft => ({
   id: criterion.id,
@@ -216,7 +218,15 @@ const App = (): JSX.Element => {
   return (
     <main className={styles.page}>
       <header className={styles.header}>
-        <h1 className={styles.title}>Поиск метрологических документов по параметрам</h1>
+        <div className={styles.headerMain}>
+          <ThemedSvgLogo
+            src={metroLogoSrc}
+            color="var(--primary-color)"
+            className={styles.logo}
+            ariaLabel="Логотип приложения"
+          />
+          <h1 className={styles.title}>Поиск метрологических документов по параметрам</h1>
+        </div>
         <button
           type="button"
           className={styles.themeToggle}

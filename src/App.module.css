@@ -12,6 +12,18 @@
   margin-bottom: 24px;
 }
 
+.headerMain {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.logo {
+  width: 58px;
+  height: 58px;
+  flex: 0 0 auto;
+}
+
 .title {
   margin: 0;
   font-size: clamp(28px, 3vw, 40px);
@@ -199,6 +211,15 @@
 
   .header {
     align-items: center;
+  }
+
+  .headerMain {
+    align-items: flex-start;
+  }
+
+  .logo {
+    width: 48px;
+    height: 48px;
   }
 
   .sectionHead {
