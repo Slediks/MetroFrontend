@@ -51,10 +51,6 @@ const App = (): JSX.Element => {
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchResult, setSearchResult] = useState("");
   const [foundDocuments, setFoundDocuments] = useState<FoundDocument[]>([]);
-  const [pdfLoading, setPdfLoading] = useState(false);
-  const [pdfError, setPdfError] = useState("");
-  const [openedDocumentName, setOpenedDocumentName] = useState("");
-  const [openedPdfUrl, setOpenedPdfUrl] = useState("");
 
   const [rating, setRating] = useState(3);
   const [comment, setComment] = useState("");
@@ -62,6 +58,10 @@ const App = (): JSX.Element => {
   const [ratingMessage, setRatingMessage] = useState("");
 
   const debouncedSearch = useDebounce(parameterSearch, 300);
+  const documentNameForPreview = useMemo(() => {
+    const match = window.location.pathname.match(/^\/documents\/(.+)$/);
+    return match ? decodeURIComponent(match[1]) : null;
+  }, []);
 
   useEffect(() => {
     const savedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
@@ -205,62 +205,6 @@ const App = (): JSX.Element => {
     }
   };
 
-  const closePdfPreview = (): void => {
-    if (openedPdfUrl) {
-      URL.revokeObjectURL(openedPdfUrl);
-    }
-
-    setOpenedPdfUrl("");
-    setOpenedDocumentName("");
-    setPdfError("");
-    setPdfLoading(false);
-  };
-
-  useEffect(() => {
-    if (!openedDocumentName && !pdfLoading) {
-      return;
-    }
-
-    const handleEscape = (event: KeyboardEvent): void => {
-      if (event.key === "Escape") {
-        closePdfPreview();
-      }
-    };
-
-    window.addEventListener("keydown", handleEscape);
-    return () => window.removeEventListener("keydown", handleEscape);
-  }, [openedDocumentName, pdfLoading, openedPdfUrl]);
-
-  useEffect(
-    () => () => {
-      if (openedPdfUrl) {
-        URL.revokeObjectURL(openedPdfUrl);
-      }
-    },
-    [openedPdfUrl]
-  );
-
-  const handleOpenDocument = async (document: FoundDocument): Promise<void> => {
-    if (openedPdfUrl) {
-      URL.revokeObjectURL(openedPdfUrl);
-      setOpenedPdfUrl("");
-    }
-
-    setPdfLoading(true);
-    setPdfError("");
-    setOpenedDocumentName(document.fileName);
-
-    try {
-      const pdfBlob = await metrologyApi.fetchDocumentPdf(document.id);
-      const nextUrl = URL.createObjectURL(pdfBlob);
-      setOpenedPdfUrl(nextUrl);
-    } catch {
-      setPdfError("Не удалось загрузить PDF. Повторите попытку.");
-    } finally {
-      setPdfLoading(false);
-    }
-  };
-
   const handleSendRating = async (): Promise<void> => {
     setRatingSending(true);
     setRatingMessage("");
@@ -278,6 +222,16 @@ const App = (): JSX.Element => {
       setRatingSending(false);
     }
   };
+
+  if (documentNameForPreview) {
+    return (
+      <iframe
+        title={`PDF: ${documentNameForPreview}`}
+        className={styles.documentPageFrame}
+        src={`${metrologyApi.getDocumentPdfUrl(documentNameForPreview)}#toolbar=0&navpanes=0`}
+      />
+    );
+  }
 
   return (
     <main className={styles.page}>
@@ -408,15 +362,12 @@ const App = (): JSX.Element => {
                   <ul className={styles.documentList}>
                     {foundDocuments.map((document) => (
                       <li key={document.id}>
-                        <button
-                          type="button"
+                        <a
                           className={styles.documentLink}
-                          onClick={() => {
-                            void handleOpenDocument(document);
-                          }}
+                          href={`/documents/${encodeURIComponent(document.fileName)}`}
                         >
                           {document.fileName}
-                        </button>
+                        </a>
                       </li>
                     ))}
                   </ul>
@@ -457,50 +408,6 @@ const App = (): JSX.Element => {
           {ratingMessage ? <span className={styles.feedbackMessage}>{ratingMessage}</span> : null}
         </div>
       </section>
-
-      {(openedDocumentName || pdfLoading) && (
-        <div
-          className={styles.modalOverlay}
-          role="dialog"
-          aria-modal="true"
-          aria-label="Предпросмотр PDF"
-          onClick={closePdfPreview}
-        >
-          <div
-            className={styles.modalCard}
-            onClick={(event) => {
-              event.stopPropagation();
-            }}
-          >
-            <div className={styles.modalHead}>
-              <h3 className={styles.modalTitle}>{openedDocumentName || "Загрузка PDF"}</h3>
-              <button
-                type="button"
-                className={styles.modalClose}
-                onClick={closePdfPreview}
-                aria-label="Закрыть предпросмотр"
-              >
-                ×
-              </button>
-            </div>
-            <div className={styles.modalBody}>
-              {pdfLoading && (
-                <div className={styles.modalLoader} aria-label="Загрузка PDF" role="status">
-                  <span className={styles.modalSpinner} />
-                </div>
-              )}
-              {!pdfLoading && pdfError && <p className={styles.modalError}>{pdfError}</p>}
-              {!pdfLoading && !pdfError && openedPdfUrl && (
-                <iframe
-                  title={`PDF: ${openedDocumentName}`}
-                  className={styles.pdfFrame}
-                  src={`${openedPdfUrl}#toolbar=0&navpanes=0`}
-                />
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </main>
   );
 };
