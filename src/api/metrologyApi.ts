@@ -93,30 +93,75 @@ const fallbackDocuments: FoundDocument[] = [
 ];
 
 // Login
-const buildAuthResponse = (): AuthResponse => ({
-  token: issueToken(),
-  expiresAt: Date.now() + TOKEN_TTL_MS
-});
+const getApiUrl = (path: string): string => {
+  if (!API_BASE_URL) {
+    return path;
+  }
+
+  return `${API_BASE_URL.replace(/\/$/, "")}${path}`;
+};
+
+const normalizeAuthResponse = (
+  data: { token?: unknown; expiresAt?: unknown },
+  fallbackToken?: string
+): AuthResponse => {
+  const token = typeof data.token === "string" && data.token.trim() ? data.token : fallbackToken;
+  if (!token) {
+    throw new Error("Токен не получен.");
+  }
+
+  const expiresAt =
+    typeof data.expiresAt === "number" && Number.isFinite(data.expiresAt)
+      ? data.expiresAt
+      : Date.now() + TOKEN_TTL_MS;
+
+  return { token, expiresAt };
+};
 
 export const metrologyApi = {
   async login(payload: LoginRequest): Promise<AuthResponse> {
-    await delay(300);
-
     if (!payload.username.trim() || !payload.password.trim()) {
       throw new Error("Введите логин и пароль.");
     }
 
-    return buildAuthResponse();
+    const response = await fetch(getApiUrl("/login"), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        username: payload.username.trim(),
+        password: payload.password
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error("Ошибка авторизации.");
+    }
+
+    const data = (await response.json()) as { token?: unknown; expiresAt?: unknown };
+    return normalizeAuthResponse(data);
   },
 
   async authorizeByToken(token: string): Promise<AuthResponse> {
-    await delay(250);
-
     if (!token.trim()) {
       throw new Error("Токен отсутствует.");
     }
 
-    return buildAuthResponse();
+    const response = await fetch(getApiUrl("/login"), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error("Ошибка авторизации по токену.");
+    }
+
+    const data = (await response.json()) as { token?: unknown; expiresAt?: unknown };
+    return normalizeAuthResponse(data, token);
   },
 // Login end
   async fetchParameters(mode: SearchMode, query: string): Promise<ParameterOption[]> {
