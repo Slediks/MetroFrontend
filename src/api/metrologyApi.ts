@@ -1,6 +1,8 @@
-import type {
+﻿import type {
+  AuthResponse,
   BackendCriterion,
   FoundDocument,
+  LoginRequest,
   ParameterOption,
   RatingRequest,
   SearchMode,
@@ -12,6 +14,17 @@ const delay = (ms: number): Promise<void> =>
   new Promise((resolve) => window.setTimeout(resolve, ms));
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL?.trim();
+// Login
+const TOKEN_TTL_MS = 3 * 24 * 60 * 60 * 1000;
+
+const issueToken = (): string => {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return `metro_${crypto.randomUUID()}`;
+  }
+
+  return `metro_${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
+};
+// Login end
 
 const parameterByMode: Record<SearchMode, ParameterOption[]> = {
   Измеряет: [
@@ -79,7 +92,33 @@ const fallbackDocuments: FoundDocument[] = [
   { id: "gost-8-009-2020", fileName: "ГОСТ_8.009-2020.pdf" }
 ];
 
+// Login
+const buildAuthResponse = (): AuthResponse => ({
+  token: issueToken(),
+  expiresAt: Date.now() + TOKEN_TTL_MS
+});
+
 export const metrologyApi = {
+  async login(payload: LoginRequest): Promise<AuthResponse> {
+    await delay(300);
+
+    if (!payload.username.trim() || !payload.password.trim()) {
+      throw new Error("Введите логин и пароль.");
+    }
+
+    return buildAuthResponse();
+  },
+
+  async authorizeByToken(token: string): Promise<AuthResponse> {
+    await delay(250);
+
+    if (!token.trim()) {
+      throw new Error("Токен отсутствует.");
+    }
+
+    return buildAuthResponse();
+  },
+// Login end
   async fetchParameters(mode: SearchMode, query: string): Promise<ParameterOption[]> {
     await delay(250);
     const normalized = query.trim().toLowerCase();

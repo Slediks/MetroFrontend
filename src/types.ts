@@ -1,4 +1,4 @@
-export type SearchMode = "Измеряет" | "Выдает";
+﻿export type SearchMode = "Измеряет" | "Выдает";
 
 export interface ParameterOption {
   id: string;
@@ -59,4 +59,14 @@ export interface RatingRequest {
   comment: string;
   mode: SearchMode;
   parameterId: string | null;
+}
+// Login
+export interface LoginRequest {
+  username: string;
+  password: string;
+}
+
+export interface AuthResponse {
+  token: string;
+  expiresAt: number;
 }

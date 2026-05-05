@@ -1,7 +1,9 @@
 ﻿import { useEffect, useMemo, useState } from "react";
 import { metrologyApi } from "./api/metrologyApi";
+import { authStorage } from "./auth/authStorage";
 import { DocumentTable } from "./components/DocumentTable/DocumentTable";
 import { Dropdown, type DropdownOption } from "./components/Dropdown/Dropdown";
+import { LoginPage } from "./components/LoginPage/LoginPage";
 import { RatingSlider } from "./components/RatingSlider/RatingSlider";
 import { ThemedSvgLogo } from "./components/ThemedSvgLogo/ThemedSvgLogo";
 import { useDebounce } from "./hooks/useDebounce";
@@ -38,6 +40,12 @@ const initialValidation = (rows: RowDraft[]): Record<string, RowValidation> =>
 
 const App = (): JSX.Element => {
   const [theme, setTheme] = useState<"light" | "dark">("light");
+  // Login
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authChecking, setAuthChecking] = useState(true);
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState("");
+ // Login end
   const [mode, setMode] = useState<SearchMode>("Измеряет");
   const [parameterSearch, setParameterSearch] = useState("");
   const [parameterOptions, setParameterOptions] = useState<DropdownOption[]>([]);
@@ -77,6 +85,53 @@ const App = (): JSX.Element => {
 
   useEffect(() => {
     let active = true;
+//Login
+    const restoreSession = async (): Promise<void> => {
+      const session = authStorage.getSession();
+
+      if (!session || authStorage.isExpired(session.expiresAt)) {
+        authStorage.clearSession();
+        if (active) {
+          setIsAuthenticated(false);
+          setAuthChecking(false);
+        }
+        return;
+      }
+
+      try {
+        const refreshedSession = await metrologyApi.authorizeByToken(session.token);
+        authStorage.saveSession(refreshedSession);
+
+        if (active) {
+          setIsAuthenticated(true);
+        }
+      } catch {
+        authStorage.clearSession();
+        if (active) {
+          setIsAuthenticated(false);
+        }
+      } finally {
+        if (active) {
+          setAuthChecking(false);
+        }
+      }
+    };
+
+    restoreSession();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    if (!isAuthenticated) {
+      return () => {
+        active = false;
+      };
+    } // Login end
 
     const loadParameters = async (): Promise<void> => {
       setParameterLoading(true);
@@ -97,12 +152,12 @@ const App = (): JSX.Element => {
     return () => {
       active = false;
     };
-  }, [mode, debouncedSearch]);
+  }, [isAuthenticated, mode, debouncedSearch]); // Login
 
   useEffect(() => {
     let active = true;
 
-    if (!selectedParameter) {
+    if (!selectedParameter || !isAuthenticated) { // Login
       setRows([]);
       setValidations({});
       return;
@@ -131,7 +186,7 @@ const App = (): JSX.Element => {
     return () => {
       active = false;
     };
-  }, [selectedParameter]);
+  }, [isAuthenticated, selectedParameter]); // Login
 
   const selectedModeOption = useMemo<DropdownOption>(
     () => modeOptions.find((item) => item.id === mode) ?? modeOptions[0],
@@ -145,6 +200,27 @@ const App = (): JSX.Element => {
       [rowId]: { unit: null, value: null }
     }));
   };
+// Login
+  const handleLogin = async (username: string, password: string): Promise<void> => {
+    setAuthLoading(true);
+    setAuthError("");
+
+    try {
+      const session = await metrologyApi.login({ username, password });
+      authStorage.saveSession(session);
+      setIsAuthenticated(true);
+    } catch {
+      setAuthError("Не удалось выполнить вход. Проверьте логин и пароль.");
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleLogout = (): void => {
+    authStorage.clearSession();
+    setIsAuthenticated(false);
+    setAuthError("");
+  }; // Login end
 
   const handleSearch = async (): Promise<void> => {
     if (!selectedParameter) {
@@ -222,6 +298,14 @@ const App = (): JSX.Element => {
       setRatingSending(false);
     }
   };
+// Login
+  if (authChecking) {
+    return <main className={styles.authLoading}>Проверка авторизации...</main>;
+  }
+
+  if (!isAuthenticated) {
+    return <LoginPage loading={authLoading} error={authError} onSubmit={handleLogin} />;
+  } // Login end
 
   if (documentNameForPreview) {
     return (
@@ -245,14 +329,25 @@ const App = (): JSX.Element => {
           />
           <h1 className={styles.title}>Поиск метрологических документов по параметрам</h1>
         </div>
-        <button
-          type="button"
-          className={styles.themeToggle}
-          onClick={() => setTheme((prevState) => (prevState === "light" ? "dark" : "light"))}
-          aria-label="Переключить тему"
-        >
-          {theme === "light" ? "◑" : "◐"}
-        </button>
+        {/* Login */}
+        <div className={styles.headerActions}>
+          <button
+            type="button"
+            className={styles.logoutButton}
+            onClick={handleLogout}
+          >
+            Выйти
+          </button>
+          <button
+            type="button"
+            className={styles.themeToggle}
+            onClick={() => setTheme((prevState) => (prevState === "light" ? "dark" : "light"))}
+            aria-label="Переключить тему"
+          >
+            {theme === "light" ? "◑" : "◐"}
+          </button>
+        </div>
+        {/* Login end */}
       </header>
 
       <section className={styles.card}>
